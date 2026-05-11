@@ -369,7 +369,8 @@ def dashboard():
       var status = document.getElementById('run-status');
       btn.disabled = true;
       btn.textContent = '⟳ Starting...';
-      fetch('/run', {{method:'POST'}})
+      var runUrl = window.location.pathname.replace(/\/+$/, '') + '/run';
+      fetch(runUrl, {{method:'POST'}})
         .then(function(r) {{ return r.json(); }})
         .then(function(d) {{
           status.textContent = '✓ Session ' + d.session_id.slice(0,8) + ' started';
