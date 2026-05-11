@@ -24,7 +24,15 @@ AVAILABLE_PATIENTS = {
 }
 
 
-def _get_llm() -> ChatOllama:
+def _get_llm():
+    provider = os.environ.get("RED_TEAM_PROVIDER", "ollama")
+    if provider == "groq":
+        from langchain_groq import ChatGroq
+        return ChatGroq(
+            model=os.environ.get("RED_TEAM_MODEL", "llama-3.3-70b-versatile"),
+            api_key=os.environ.get("GROQ_API_KEY"),
+            temperature=0.9,
+        )
     return ChatOllama(
         model=os.environ.get("RED_TEAM_MODEL", "qwen2.5:32b"),
         base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
