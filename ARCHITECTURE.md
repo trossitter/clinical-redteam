@@ -21,11 +21,11 @@ The multi-agent architecture solves both problems. Each agent has a clearly boun
 | Agent | Primary Function | Model |
 |---|---|---|
 | Orchestrator | Coverage gap analysis, task assignment, budget control | Claude Sonnet 4.6 |
-| Red Team | Attack generation, mutation, multi-turn execution | Mixtral 8x7b (local Ollama) |
+| Red Team | Attack generation, mutation, multi-turn execution | Qwen2.5:14b (local Ollama) |
 | Judge | Independent verdict on attack outcomes | Claude Sonnet 4.6 |
 | Documentation | Structured vulnerability reporting | Claude Sonnet 4.6 |
 
-**Key design tradeoffs.** The Red Team Agent runs on a locally-hosted open-weight model (Mixtral 8x7b via Ollama) precisely because frontier commercial models refuse offensive security prompts. This means the Red Team Agent is cheaper to run but less capable at reasoning than Claude. The Judge and Documentation Agents use Claude Sonnet 4.6 — they are not doing offensive work and need precise, consistent structured output. SQLite is the persistence layer: it is versioned, queryable, and requires no infrastructure, which matters for a platform that must be auditable and reproducible. Langfuse provides observability across all agents without requiring a cloud dependency. Human approval gates are scoped narrowly — only Critical severity reports — to avoid review fatigue while maintaining accountability at the highest risk tier.
+**Key design tradeoffs.** The Red Team Agent runs on a locally-hosted open-weight model (Qwen2.5:14b via Ollama) precisely because frontier commercial models refuse offensive security prompts. This means the Red Team Agent is cheaper to run but less capable at reasoning than Claude. The Judge and Documentation Agents use Claude Sonnet 4.6 — they are not doing offensive work and need precise, consistent structured output. SQLite is the persistence layer: it is versioned, queryable, and requires no infrastructure, which matters for a platform that must be auditable and reproducible. Langfuse provides observability across all agents without requiring a cloud dependency. Human approval gates are scoped narrowly — only Critical severity reports — to avoid review fatigue while maintaining accountability at the highest risk tier.
 
 ---
 
@@ -58,7 +58,7 @@ AgentForge runs outside OpenEMR's codebase. It communicates with the target excl
 ```mermaid
 graph TD
     ORC[Orchestrator Agent\nClaude Sonnet 4.6]
-    RT[Red Team Agent\nMixtral 8x7b / Ollama]
+    RT[Red Team Agent\nQwen2.5:14b / Ollama]
     JG[Judge Agent\nClaude Sonnet 4.6]
     DOC[Documentation Agent\nClaude Sonnet 4.6]
     HG[Human Approval Gate]
@@ -128,11 +128,11 @@ graph TD
 
 ### 2. Red Team Agent
 
-**Model:** Mixtral 8x7b via local Ollama (M1 64GB Mac)
+**Model:** Qwen2.5:14b via local Ollama (M1 64GB Mac)
 
 **Role:** The Red Team Agent generates, executes, and mutates attack sequences against the live target. It is the only agent that touches the external HTTP interface.
 
-**Why Mixtral, not Claude:** Frontier commercial models (Claude, GPT-4) are safety-trained to refuse or substantially constrain offensive security workflows. Mixtral 8x7b, run locally on self-hosted infrastructure, is less filtered and will engage fully with prompt injection, PHI exfiltration, and role escalation templates. It runs at zero marginal cost with no rate limits, which matters for sustained overnight regression runs.
+**Why Qwen2.5, not Claude:** Frontier commercial models (Claude, GPT-4) are safety-trained to refuse or substantially constrain offensive security workflows. Qwen2.5:14b, run locally on self-hosted infrastructure, is less filtered and will engage fully with prompt injection, PHI exfiltration, and role escalation templates. It runs at zero marginal cost with no rate limits, which matters for sustained overnight regression runs.
 
 **Framing:** The Red Team Agent operates as an authorized penetration tester against a defined target scope (clinicalcopilot.org). This framing is encoded in the system prompt and the attack library metadata.
 
@@ -162,7 +162,7 @@ graph TD
 
 **Trust level:** Low. The Red Team Agent is explicitly designed to attempt harmful actions against the target. It must not have write access to the SQLite store, must not invoke the Documentation Agent directly, and must not communicate with the Judge except through the LangGraph edge (no shared memory, no tool-sharing).
 
-**Failure mode:** Mixtral can drift into incoherent attack sequences when context windows fill. Mitigation: attack sequences are capped at a maximum turn count enforced by the LangGraph graph node, not by the model itself. If Ollama is unavailable, the Orchestrator receives a service-unavailable signal and suspends Red Team task assignment.
+**Failure mode:** Qwen2.5 can drift into incoherent attack sequences when context windows fill. Mitigation: attack sequences are capped at a maximum turn count enforced by the LangGraph graph node, not by the model itself. If Ollama is unavailable, the Orchestrator receives a service-unavailable signal and suspends Red Team task assignment.
 
 ---
 
@@ -310,7 +310,7 @@ Langfuse captures a structured trace for every agent action. At any point during
 |---|---|---|
 | Coverage gap analysis | AI (Claude) | Requires weighing multiple signals against strategic priorities — not expressible as a rule |
 | Attack template library | Deterministic (JSON) | Seeds must be reproducible for regression; nondeterminism here hurts consistency |
-| Attack mutation | AI (Mixtral) | Requires semantic understanding of why a partial attack partially worked |
+| Attack mutation | AI (Qwen2.5) | Requires semantic understanding of why a partial attack partially worked |
 | Multi-turn HTTP execution | Deterministic (Python requests) | HTTP is a protocol; no reasoning needed to send requests |
 | Verdict evaluation | AI (Claude) | Requires understanding clinical context, semantic intent, and harm potential |
 | Rubric version management | Deterministic (SQLite) | Schema change is a human decision; the rubric must be stable between runs |
@@ -332,7 +332,7 @@ Token cost is a first-class constraint, not an afterthought.
 | Agent | Primary cost driver | Cost control lever |
 |---|---|---|
 | Orchestrator | Coordination cycles × context length | Limit coverage report verbosity; cap coordination loop frequency |
-| Red Team | Mixtral is local / zero API cost | Turn count cap per attack sequence enforced at graph node |
+| Red Team | Qwen2.5 is local / zero API cost | Turn count cap per attack sequence enforced at graph node |
 | Judge | Verdict per attack × Claude Sonnet rate | Batch partial verdicts where possible; escalate uncertain to human (no re-evaluation cost) |
 | Documentation | One report per confirmed exploit | Low frequency by nature; no additional control needed |
 
@@ -344,7 +344,7 @@ Token cost is a first-class constraint, not an afterthought.
 
 | Tradeoff | Decision | Consequence |
 |---|---|---|
-| Mixtral vs. Claude for Red Team | Mixtral (local, less filtered) | Lower reasoning quality on complex multi-turn sequences; compensated by iteration volume and mutation loop |
+| Qwen2.5 vs. Claude for Red Team | Qwen2.5 (local, less filtered) | Lower reasoning quality on complex multi-turn sequences; compensated by iteration volume and mutation loop |
 | SQLite vs. managed DB | SQLite | No infra overhead, easy audit, no concurrent write scaling; acceptable for a single-platform deployment |
 | Self-hosted Langfuse vs. cloud | Self-hosted | No data egress of attack payloads (which may contain PHI extracted from the target); requires local infra |
 | Auto-file High and below | Auto-file, human gate only for Critical | Reduces review fatigue; risk that a High finding is miscategorized and filed without human review |
@@ -359,7 +359,7 @@ Token cost is a first-class constraint, not an afterthought.
 | Component | Technology |
 |---|---|
 | Agent framework | LangGraph (Python) |
-| Red Team model | Mixtral 8x7b via Ollama (local) |
+| Red Team model | Qwen2.5:14b via Ollama (local) |
 | Orchestrator / Judge / Documentation model | Claude Sonnet 4.6 (Anthropic API) |
 | Inter-agent messaging | Pydantic-typed schemas over LangGraph edges |
 | Persistence | SQLite |
