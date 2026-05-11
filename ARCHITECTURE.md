@@ -332,7 +332,7 @@ Token cost is a first-class constraint, not an afterthought.
 | Agent | Primary cost driver | Cost control lever |
 |---|---|---|
 | Orchestrator | Coordination cycles × context length | Limit coverage report verbosity; cap coordination loop frequency |
-| Red Team | Qwen2.5 is local / zero API cost | Turn count cap per attack sequence enforced at graph node |
+| Red Team | Local Ollama: zero API cost. Groq API: ~$0.0009/1K tokens | Turn count cap per attack sequence enforced at graph node |
 | Judge | Verdict per attack × Claude Sonnet rate | Batch partial verdicts where possible; escalate uncertain to human (no re-evaluation cost) |
 | Documentation | One report per confirmed exploit | Low frequency by nature; no additional control needed |
 
@@ -344,12 +344,12 @@ Token cost is a first-class constraint, not an afterthought.
 
 | Tradeoff | Decision | Consequence |
 |---|---|---|
-| Qwen2.5 vs. Claude for Red Team | Qwen2.5 (local, less filtered) | Lower reasoning quality on complex multi-turn sequences; compensated by iteration volume and mutation loop |
+| Qwen2.5 (local) vs. Groq API (deployed) | Environment-aware: Ollama locally, Groq in production | Local gives zero cost and full privacy; Groq gives always-on availability. One env var separates them. |
 | SQLite vs. managed DB | SQLite | No infra overhead, easy audit, no concurrent write scaling; acceptable for a single-platform deployment |
 | Self-hosted Langfuse vs. cloud | Self-hosted | No data egress of attack payloads (which may contain PHI extracted from the target); requires local infra |
 | Auto-file High and below | Auto-file, human gate only for Critical | Reduces review fatigue; risk that a High finding is miscategorized and filed without human review |
 | Separate Judge model instance | Full structural independence | Higher token cost vs. single shared model; required for evaluation integrity |
-| Local Ollama M1 64GB | Single machine, no cluster | Attack throughput limited by single GPU; not designed for horizontal scale in this iteration |
+| Platform on same droplet as target | Co-located on DigitalOcean | Simpler networking and ops; single point of failure. Acceptable for this iteration. |
 | No privileged access to target | Black-box HTTP only | More realistic threat model; cannot test internal bypasses, configuration errors, or DB-level vulnerabilities |
 
 ---
@@ -359,14 +359,17 @@ Token cost is a first-class constraint, not an afterthought.
 | Component | Technology |
 |---|---|
 | Agent framework | LangGraph (Python) |
-| Red Team model | Qwen2.5:32b via Ollama (local) |
+| Red Team model — local dev | Qwen2.5:32b via Ollama (M1 64GB) |
+| Red Team model — deployed | llama-3.3-70b-versatile via Groq API (free tier) |
 | Orchestrator / Judge / Documentation model | Claude Sonnet 4.6 (Anthropic API) |
 | Inter-agent messaging | Pydantic-typed schemas over LangGraph edges |
 | Persistence | SQLite |
 | Observability | Langfuse (self-hosted) |
-| Target interface | HTTP (Python requests) |
-| Language | Python 3.11+ |
-| Deployment | Local (M1 Mac, 64GB RAM) |
+| Platform web interface | FastAPI + uvicorn (`/agentforge` dashboard) |
+| Target interface | HTTP (httpx) |
+| Containerisation | Docker (deployed as service on DigitalOcean droplet) |
+| Language | Python 3.12 (container) / 3.14 (local) |
+| Deployment | DigitalOcean Droplet — same host as target |
 
 ---
 
@@ -380,4 +383,53 @@ Token cost is a first-class constraint, not an afterthought.
 
 ---
 
-*AgentForge — Week 3 Project, Gauntlet AI*
+## Deployment
+
+AgentForge runs as a Docker service on the same DigitalOcean droplet (138.197.78.43) as the target system. The platform communicates with the Clinical Co-Pilot exclusively via its public HTTPS interface — no internal networking shortcuts, no shared Docker network with the target containers.
+
+```
+DigitalOcean Droplet (NYC3, 2 vCPU / 4 GB)
+├── clinicalcopilot-openemr-1       port 80/443  (target)
+├── clinicalcopilot-copilot-1       port 8400    (target — internal)
+└── agentforge-1                    port 8500    (platform)
+     │
+     ├── GET/POST /agentforge        → FastAPI dashboard (proxied via Apache)
+     ├── POST /agentforge/run        → triggers attack session (background task)
+     ├── GET /agentforge/findings    → confirmed exploits
+     └── GET /agentforge/health      → liveness check
+```
+
+**Red Team provider routing:**
+
+| Environment | `RED_TEAM_PROVIDER` | Model | Cost |
+|---|---|---|---|
+| Local development | `ollama` | Qwen2.5:32b (local) | $0 |
+| Deployed (DigitalOcean) | `groq` | llama-3.3-70b-versatile | ~$0/run (free tier) |
+
+Switching environments requires changing one env var. The LangGraph graph, agent logic, SQLite schema, and all other platform components are identical across environments.
+
+**Deploy command:**
+```bash
+cd ~/clinical-redteam && ./deploy.sh
+```
+
+---
+
+## Post-Defense Architecture Changes
+
+The core multi-agent architecture — agent roles, LangGraph graph topology, Judge independence, human approval gates, SQLite regression harness — was designed and defended on **May 11, 2026** and is unchanged.
+
+The following infrastructure decisions were made after the architecture defense, driven by grading and deployment requirements rather than agent design:
+
+| Change | Reason |
+|---|---|
+| Added Groq API as Red Team provider | Local Ollama requires a laptop to stay on. Graders have a 48-hour window; laptop-as-server is a failure point. Groq free tier eliminates this with zero cost. |
+| Added FastAPI dashboard (`server.py`) | Graders need a way to observe and trigger the platform without SSH access. The dashboard surfaces coverage, findings, and reports at a URL. |
+| Dockerized the platform | Consistent with how clinicalcopilot.org is deployed. Enables `./deploy.sh` one-command deployment. Removes environment dependency. |
+| Platform deployed to DigitalOcean droplet | Same rationale as Groq — removes laptop as failure point. Platform is now always-on alongside the target it tests. |
+
+**What did not change:** The agent architecture, the model selection rationale for Judge/Orchestrator/Documentation (Claude Sonnet), the trust boundaries, the human approval gates, the regression harness design, and the observability strategy.
+
+---
+
+*AgentForge — Week 3 Project, Gauntlet AI — May 11, 2026*
