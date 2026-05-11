@@ -88,8 +88,9 @@ def dashboard():
           <td>{data.get('last_run_at','—')[:19] if data.get('last_run_at') else '—'}</td>
         </tr>"""
 
+    base = "/agentforge"
     report_links = "".join(
-        f"<li><a href='/report/{r.stem}' style='color:#74c0fc'>{r.stem}</a></li>"
+        f"<li><a href='{base}/report/{r.stem}' style='color:#74c0fc'>{r.stem}</a></li>"
         for r in reports
     )
 
@@ -429,9 +430,9 @@ def get_report(report_id: str):
         return HTMLResponse("<h1>Not found</h1>", status_code=404)
     content = path.read_text().replace("\n", "<br>").replace("##", "<h2>").replace("#", "<h1>")
     return f"""<!DOCTYPE html><html><head><title>{report_id}</title>
-    <style>body{{background:#0f1b2d;color:#fff;font-family:monospace;padding:2rem;}}
+    <style>body{{background:#0f1b2d;color:#fff;font-family:monospace;padding:2rem;line-height:1.6}}
     a{{color:#4a9eff;}}</style></head>
-    <body><a href='/'>← back</a><pre style='white-space:pre-wrap'>{path.read_text()}</pre></body></html>"""
+    <body><a href='/agentforge'>← back to dashboard</a><br><br><pre style='white-space:pre-wrap'>{path.read_text()}</pre></body></html>"""
 
 
 @app.get("/health")
