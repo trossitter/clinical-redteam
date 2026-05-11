@@ -31,25 +31,39 @@ def _render_verdict_feed(verdicts: list[dict]) -> str:
         color, bg = _VERDICT_COLORS.get(v["verdict"], ("#b0c4de", "#1a2d4a"))
         ts = v["created_at"][:19].replace("T", " ") + " UTC" if v.get("created_at") else ""
         reg = "<span style='color:#51cf66;font-size:0.8rem'>✓ regression candidate</span>" if v.get("regression_candidate") else ""
+        keyword = v["subcategory"].replace("_", " ").title()
+        rationale = v.get("rationale", "")
+        # First sentence as muted preview
+        first_sentence = rationale.split(". ")[0].strip()
+        if len(first_sentence) > 130:
+            first_sentence = first_sentence[:127] + "…"
         cards += f"""
-        <div style='background:{bg};border-left:4px solid {color};padding:1rem 1.2rem;
-                    margin-bottom:0.8rem;border-radius:0 4px 4px 0;'>
-          <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem'>
+        <div style='background:{bg};border-left:4px solid {color};padding:0.9rem 1.2rem;
+                    margin-bottom:0.7rem;border-radius:0 4px 4px 0;'>
+          <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:0.55rem'>
             <div>
-              <span style='color:{color};font-size:1.1rem;font-weight:900;letter-spacing:0.08em'>
+              <span style='color:{color};font-size:1.05rem;font-weight:900;letter-spacing:0.08em'>
                 {v["verdict"].upper()}
               </span>
-              <span style='color:#b0c4de;font-size:0.85rem;margin-left:0.8rem'>
-                {v["category"]} / {v["subcategory"]}
+              <span style='color:#4a6080;font-size:0.8rem;margin-left:0.8rem'>
+                {v["category"]}
               </span>
             </div>
-            <div style='text-align:right;font-size:0.8rem;color:#4a6080'>
+            <div style='text-align:right;font-size:0.78rem;color:#4a6080'>
               {v["severity"].upper()} &nbsp;·&nbsp; {ts}<br>{reg}
             </div>
           </div>
-          <div style='color:#c8d8e8;font-size:0.92rem;line-height:1.55;border-top:1px solid rgba(255,255,255,0.06);padding-top:0.6rem'>
-            {v["rationale"]}
-          </div>
+          <details>
+            <summary style='cursor:pointer;list-style:none;outline:none;'>
+              <span style='color:{color};font-weight:700;font-size:0.9rem'>{keyword}</span>
+              <span style='color:#6a8090;font-size:0.85rem;margin-left:0.6rem'>— {first_sentence}.</span>
+            </summary>
+            <div style='color:#c8d8e8;font-size:0.88rem;line-height:1.6;
+                        border-top:1px solid rgba(255,255,255,0.06);
+                        margin-top:0.6rem;padding-top:0.6rem'>
+              {rationale}
+            </div>
+          </details>
         </div>"""
     return cards
 
@@ -326,9 +340,8 @@ def dashboard():
 
   <h2>Trigger Attack Session</h2>
   <p style='color:#b0c4de'>Starts a full Orchestrator → Red Team → Judge cycle against the live target.</p>
-  <form action='/run' method='post'>
-    <button type='submit'>▶ Run Attack Session</button>
-  </form>
+  <button id='run-btn' onclick='triggerRun()'>▶ Run Attack Session</button>
+  <span id='run-status' style='margin-left:1rem;color:#51cf66;font-size:0.9rem'></span>
 
   <h2>Judge Verdicts — Live Feed</h2>
   {"<p style='color:#b0c4de'>No verdicts yet — trigger a session to begin.</p>" if not verdicts else _render_verdict_feed(verdicts)}
@@ -350,6 +363,26 @@ def dashboard():
       if (!overlay) return;
       setTimeout(function() {{ overlay.style.display = 'none'; }}, 2850);
     }})();
+
+    function triggerRun() {{
+      var btn = document.getElementById('run-btn');
+      var status = document.getElementById('run-status');
+      btn.disabled = true;
+      btn.textContent = '⟳ Starting...';
+      fetch('/run', {{method:'POST'}})
+        .then(function(r) {{ return r.json(); }})
+        .then(function(d) {{
+          status.textContent = '✓ Session ' + d.session_id.slice(0,8) + ' started';
+          btn.textContent = '▶ Run Attack Session';
+          btn.disabled = false;
+        }})
+        .catch(function() {{
+          status.style.color = '#ff6b6b';
+          status.textContent = '✗ Failed to start session';
+          btn.textContent = '▶ Run Attack Session';
+          btn.disabled = false;
+        }});
+    }}
 
     // Auto-refresh every 20s — skip on first load (gate animation window)
     setTimeout(function() {{
