@@ -59,9 +59,221 @@ def dashboard():
               font-family:monospace; font-size:1rem; cursor:pointer; border-radius:4px; }}
     button:hover {{ background:#74c0fc; }}
     ul {{ color:#b0c4de; }} a {{ color:#74c0fc; }}
+
+    /* ── Gate animation overlay ── */
+    #gate-overlay {{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      pointer-events: all;
+      overflow: hidden;
+    }}
+
+    /* Centre seam — pressurised crack, cold and narrow */
+    #gate-overlay::after {{
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 50%;
+      width: 0;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg,
+        transparent 0%,
+        rgba(220,240,255,0.95) 20%,
+        rgba(255,255,255,1)    50%,
+        rgba(220,240,255,0.95) 80%,
+        transparent 100%);
+      opacity: 0;
+      z-index: 10001;
+      animation: seamGlow 2.6s ease-in-out forwards;
+      animation-delay: 0.5s;
+    }}
+
+    @keyframes seamGlow {{
+      0%   {{ width:0;   opacity:0; }}
+      12%  {{ width:3px; opacity:1; }}
+      30%  {{ width:4px; opacity:0.7; }}
+      48%  {{ width:2px; opacity:0.15; }}
+      60%  {{ width:0;   opacity:0; }}
+      100% {{ width:0;   opacity:0; }}
+    }}
+
+
+    /* AGENTFORGE title on overlay */
+    #gate-title {{
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10002;
+      font-family: monospace;
+      font-size: clamp(2rem, 6vw, 5rem);
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #c8d8e8;
+      text-shadow:
+        0 0 12px #4a9eff,
+        0 0 30px #2266cc,
+        0 0 60px #1a44aa;
+      opacity: 0;
+      white-space: nowrap;
+      animation: titleReveal 2.6s ease-in-out forwards;
+      animation-delay: 0.5s;
+      pointer-events: none;
+    }}
+
+    @keyframes titleReveal {{
+      0%   {{ opacity:0; letter-spacing:0.05em; }}
+      20%  {{ opacity:1; letter-spacing:0.18em; }}
+      65%  {{ opacity:1; letter-spacing:0.18em; }}
+      100% {{ opacity:0; letter-spacing:0.35em; }}
+    }}
+
+    /* ── Panel shared styles ── */
+    .gate-panel {{
+      position: relative;
+      width: 50%;
+      height: 100%;
+      flex-shrink: 0;
+      overflow: hidden;
+      /* Dark steel gradient */
+      background:
+        repeating-linear-gradient(
+          180deg,
+          rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px,
+          transparent 1px, transparent 12px
+        ),
+        linear-gradient(
+          160deg,
+          #1c2530 0%, #0e1520 20%, #1a2535 40%,
+          #0b1018 60%, #1e2d40 80%, #0d1520 100%
+        );
+      box-shadow: inset 0 0 80px rgba(0,0,0,0.8);
+      animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+      animation-fill-mode: forwards;
+      animation-duration: 1.1s;
+      animation-delay: 1.3s;
+    }}
+
+    /* Vertical bars (portcullis) */
+    .gate-panel::before {{
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        rgba(30,45,65,0.0)  0px,
+        rgba(30,45,65,0.0)  22px,
+        rgba(8,14,22,0.85)  22px,
+        rgba(8,14,22,0.85)  28px,
+        rgba(30,45,65,0.0)  28px,
+        rgba(30,45,65,0.0)  50px
+      );
+      z-index: 1;
+    }}
+
+    /* Horizontal rail lines */
+    .gate-panel::after {{
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        180deg,
+        transparent        0px,
+        transparent        58px,
+        rgba(0,0,0,0.55)   58px,
+        rgba(0,0,0,0.55)   66px,
+        transparent        66px,
+        transparent        120px
+      );
+      z-index: 2;
+    }}
+
+    /* Rivet dots on left panel */
+    .gate-left .rivets {{
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background:
+        radial-gradient(circle 4px at 20px 40px,  #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 120px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 200px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 280px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 360px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 440px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 520px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 600px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 680px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 760px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 840px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at 20px 920px, #2a3d52 60%, transparent 61%);
+    }}
+
+    /* Rivet dots on right panel */
+    .gate-right .rivets {{
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background:
+        radial-gradient(circle 4px at calc(100% - 20px) 40px,  #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 120px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 200px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 280px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 360px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 440px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 520px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 600px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 680px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 760px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 840px, #2a3d52 60%, transparent 61%),
+        radial-gradient(circle 4px at calc(100% - 20px) 920px, #2a3d52 60%, transparent 61%);
+    }}
+
+    /* Edge highlight — inner seam edge glow */
+    .gate-left  {{ box-shadow: inset -4px 0 20px rgba(0,0,0,0.9), inset 0 0 60px rgba(0,0,0,0.6); }}
+    .gate-right {{ box-shadow: inset  4px 0 20px rgba(0,0,0,0.9), inset 0 0 60px rgba(0,0,0,0.6); }}
+
+    @keyframes slideLeft {{
+      from {{ transform: translateX(0); }}
+      to   {{ transform: translateX(-105%); }}
+    }}
+
+    @keyframes slideRight {{
+      from {{ transform: translateX(0); }}
+      to   {{ transform: translateX(105%); }}
+    }}
+
+    .gate-left  {{ animation-name: slideLeft;  }}
+    .gate-right {{ animation-name: slideRight; }}
+
+    /* Final fade-out of the whole overlay */
+    #gate-overlay {{
+      animation: overlayFade 0.35s ease-out forwards;
+      animation-delay: 2.4s;
+    }}
+
+    @keyframes overlayFade {{
+      from {{ opacity:1; pointer-events:all; }}
+      to   {{ opacity:0; pointer-events:none; }}
+    }}
   </style>
 </head>
 <body>
+
+  <!-- ── Gate animation overlay ── -->
+  <div id="gate-overlay">
+    <div class="gate-panel gate-left">
+      <div class="rivets"></div>
+    </div>
+    <div id="gate-title">AGENTFORGE</div>
+    <div class="gate-panel gate-right">
+      <div class="rivets"></div>
+    </div>
+  </div>
+  <!-- ── End gate overlay ── -->
+
   <h1>AgentForge</h1>
   <p>Adversarial AI Security Platform &nbsp;·&nbsp;
      Target: <a href='https://clinicalcopilot.org'>clinicalcopilot.org</a> &nbsp;·&nbsp;
@@ -91,6 +303,19 @@ def dashboard():
   <p style='color:#1a2d4a;margin-top:3rem'>
     AgentForge · Gauntlet AI Week 3 · {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}
   </p>
+
+  <script>
+    // After the overlay fades out, remove it from the DOM entirely so it
+    // never blocks mouse events on the dashboard underneath.
+    (function() {{
+      var overlay = document.getElementById('gate-overlay');
+      if (!overlay) return;
+      // Total duration: seamGlow delay(0.5) + duration(2.6) + overlayFade delay(2.4) + duration(0.35) ≈ 2800ms
+      setTimeout(function() {{
+        overlay.style.display = 'none';
+      }}, 2850);
+    }})();
+  </script>
 </body>
 </html>"""
 
