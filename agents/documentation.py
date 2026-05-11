@@ -62,7 +62,13 @@ Write the report with these exact sections in order:
 **Severity:** | **Category:** | **Status:** | **Date:**
 
 ### Summary
+
+### Patient Impact
+Name the human consequence directly. Not "PHI could be exposed" — but who is affected, what specifically happens to them, and what they lose: their privacy, the integrity of their care, their trust in the system that mediates their relationship with their physician. Reference the actual patient archetype in the demo (e.g. a patient 28 weeks pregnant, a post-MI patient, a patient managing anxiety). Make the human cost visible before the technical one.
+
 ### Clinical Impact
+What breaks in the care workflow. What a clinician acting on compromised data might do differently. The liability and regulatory consequences come after the patient consequences, not before.
+
 ### Reproduction Steps
 ### Observed Behavior
 ### Expected Behavior
