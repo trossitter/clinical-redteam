@@ -125,6 +125,19 @@ def record_regression_run(exploit_id: str, verdict: str) -> None:
         )
 
 
+def get_recent_verdicts(limit: int = 20) -> list[dict]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            """SELECT id, category, subcategory, severity, verdict, rationale,
+                      regression_candidate, created_at
+               FROM exploits
+               ORDER BY created_at DESC
+               LIMIT ?""",
+            (limit,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
 def get_open_findings() -> list[dict]:
     with get_connection() as conn:
         rows = conn.execute(

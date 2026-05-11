@@ -15,8 +15,7 @@ rsync -az --exclude='.venv' --exclude='__pycache__' --exclude='*.pyc' \
 echo "→ Rebuilding and restarting agentforge container..."
 ssh -i "$SSH_KEY" "$SERVER" "
   cd /opt/clinicalcopilot
-  docker compose build agentforge
-  docker compose up -d agentforge
+  docker compose up -d --build agentforge
   docker compose ps agentforge
 "
 

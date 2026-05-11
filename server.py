@@ -9,7 +9,7 @@ load_dotenv()
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import HTMLResponse
 
-from harness.db import init_db, get_coverage_summary, get_open_findings
+from harness.db import init_db, get_coverage_summary, get_open_findings, get_recent_verdicts
 
 init_db()
 
@@ -18,12 +18,49 @@ app = FastAPI(title="AgentForge", description="Adversarial AI Security Platform"
 _active_sessions: dict[str, str] = {}  # session_id -> status
 
 
+_VERDICT_COLORS = {
+    "success":   ("#ff6b6b", "#2a1a1a"),
+    "partial":   ("#ffd43b", "#2a2200"),
+    "failure":   ("#4a9eff", "#0f1b2d"),
+    "uncertain": ("#cc5de8", "#1e0f2a"),
+}
+
+def _render_verdict_feed(verdicts: list[dict]) -> str:
+    cards = ""
+    for v in verdicts:
+        color, bg = _VERDICT_COLORS.get(v["verdict"], ("#b0c4de", "#1a2d4a"))
+        ts = v["created_at"][:19].replace("T", " ") + " UTC" if v.get("created_at") else ""
+        reg = "<span style='color:#51cf66;font-size:0.8rem'>✓ regression candidate</span>" if v.get("regression_candidate") else ""
+        cards += f"""
+        <div style='background:{bg};border-left:4px solid {color};padding:1rem 1.2rem;
+                    margin-bottom:0.8rem;border-radius:0 4px 4px 0;'>
+          <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem'>
+            <div>
+              <span style='color:{color};font-size:1.1rem;font-weight:900;letter-spacing:0.08em'>
+                {v["verdict"].upper()}
+              </span>
+              <span style='color:#b0c4de;font-size:0.85rem;margin-left:0.8rem'>
+                {v["category"]} / {v["subcategory"]}
+              </span>
+            </div>
+            <div style='text-align:right;font-size:0.8rem;color:#4a6080'>
+              {v["severity"].upper()} &nbsp;·&nbsp; {ts}<br>{reg}
+            </div>
+          </div>
+          <div style='color:#c8d8e8;font-size:0.92rem;line-height:1.55;border-top:1px solid rgba(255,255,255,0.06);padding-top:0.6rem'>
+            {v["rationale"]}
+          </div>
+        </div>"""
+    return cards
+
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
     coverage = get_coverage_summary()
     findings = get_open_findings()
     reports = sorted(Path("reports").glob("*.md"))
     active = [sid for sid, status in _active_sessions.items() if status == "running"]
+    verdicts = get_recent_verdicts(20)
 
     rows = ""
     for cat, data in coverage.items():
@@ -293,6 +330,9 @@ def dashboard():
     <button type='submit'>▶ Run Attack Session</button>
   </form>
 
+  <h2>Judge Verdicts — Live Feed</h2>
+  {"<p style='color:#b0c4de'>No verdicts yet — trigger a session to begin.</p>" if not verdicts else _render_verdict_feed(verdicts)}
+
   <h2>Open Findings ({len(findings)})</h2>
   {"<p style='color:#b0c4de'>No confirmed exploits yet.</p>" if not findings else
    "<ul>" + "".join(f"<li>{f['category']} / {f['subcategory']} — <strong style='color:#ff6b6b'>{f['severity'].upper()}</strong></li>" for f in findings) + "</ul>"}
@@ -305,16 +345,16 @@ def dashboard():
   </p>
 
   <script>
-    // After the overlay fades out, remove it from the DOM entirely so it
-    // never blocks mouse events on the dashboard underneath.
     (function() {{
       var overlay = document.getElementById('gate-overlay');
       if (!overlay) return;
-      // Total duration: seamGlow delay(0.5) + duration(2.6) + overlayFade delay(2.4) + duration(0.35) ≈ 2800ms
-      setTimeout(function() {{
-        overlay.style.display = 'none';
-      }}, 2850);
+      setTimeout(function() {{ overlay.style.display = 'none'; }}, 2850);
     }})();
+
+    // Auto-refresh every 20s — skip on first load (gate animation window)
+    setTimeout(function() {{
+      setInterval(function() {{ location.reload(); }}, 20000);
+    }}, 5000);
   </script>
 </body>
 </html>"""
