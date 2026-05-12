@@ -4,7 +4,9 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "agentforge.db"
+_data_dir = Path(__file__).parent.parent / "data"
+_data_dir.mkdir(exist_ok=True)
+DB_PATH = _data_dir / "agentforge.db"
 
 
 def get_connection() -> sqlite3.Connection:
