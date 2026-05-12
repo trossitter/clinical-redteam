@@ -31,7 +31,9 @@ def _render_verdict_feed(verdicts: list[dict]) -> str:
         color, bg = _VERDICT_COLORS.get(v["verdict"], ("#b0c4de", "#1a2d4a"))
         ts = v["created_at"][:19].replace("T", " ") + " UTC" if v.get("created_at") else ""
         reg = "<span style='color:#51cf66;font-size:0.8rem'>✓ regression candidate</span>" if v.get("regression_candidate") else ""
-        keyword = v["subcategory"].replace("_", " ").title()
+        _acronyms = {"soap": "SOAP", "phi": "PHI", "pid": "PID", "ehr": "EHR", "dob": "DOB"}
+        raw = v["subcategory"].replace("_", " ")
+        keyword = " ".join(_acronyms.get(w.lower(), w.capitalize()) for w in raw.split())
         rationale = v.get("rationale", "")
         # First sentence as muted preview
         first_sentence = rationale.split(". ")[0].strip()
