@@ -362,6 +362,12 @@ def dashboard():
     (function() {{
       var overlay = document.getElementById('gate-overlay');
       if (!overlay) return;
+      // Skip animation if this load was triggered by auto-refresh
+      if (sessionStorage.getItem('autoRefresh')) {{
+        sessionStorage.removeItem('autoRefresh');
+        overlay.style.display = 'none';
+        return;
+      }}
       setTimeout(function() {{ overlay.style.display = 'none'; }}, 2850);
     }})();
 
@@ -386,9 +392,12 @@ def dashboard():
         }});
     }}
 
-    // Auto-refresh every 20s — skip on first load (gate animation window)
+    // Auto-refresh every 20s — flag it so animation is skipped on the reload
     setTimeout(function() {{
-      setInterval(function() {{ location.reload(); }}, 20000);
+      setInterval(function() {{
+        sessionStorage.setItem('autoRefresh', '1');
+        location.reload();
+      }}, 20000);
     }}, 5000);
   </script>
 </body>
