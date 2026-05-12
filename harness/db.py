@@ -146,3 +146,18 @@ def get_open_findings() -> list[dict]:
             "SELECT * FROM exploits WHERE resolved_at IS NULL ORDER BY severity DESC"
         ).fetchall()
         return [dict(row) for row in rows]
+
+
+_COST_PER_CYCLE = 0.019  # Claude Sonnet 4.6 Judge + Orchestrator + amortised Docs; Red Team is $0 (Groq/Ollama)
+
+
+def get_cost_last_24h() -> tuple[int, float]:
+    """Return (cycle_count, estimated_usd) for the last 24 hours."""
+    from datetime import timedelta
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM exploits WHERE created_at >= ?", (cutoff,)
+        ).fetchone()
+    count = row[0] if row else 0
+    return count, round(count * _COST_PER_CYCLE, 4)

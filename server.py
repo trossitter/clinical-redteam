@@ -9,7 +9,7 @@ load_dotenv()
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import HTMLResponse
 
-from harness.db import init_db, get_coverage_summary, get_open_findings, get_recent_verdicts
+from harness.db import init_db, get_coverage_summary, get_open_findings, get_recent_verdicts, get_cost_last_24h
 
 init_db()
 
@@ -77,6 +77,7 @@ def dashboard():
     reports = sorted(Path("reports").glob("*.md"))
     active = [sid for sid, status in _active_sessions.items() if status == "running"]
     verdicts = get_recent_verdicts(20)
+    cycles_24h, cost_24h = get_cost_last_24h()
 
     rows = ""
     for cat, data in coverage.items():
@@ -333,6 +334,13 @@ def dashboard():
      Target: <a href='https://clinicalcopilot.org'>clinicalcopilot.org</a> &nbsp;·&nbsp;
      <span class='badge online'>● online</span>
      {"&nbsp;<span class='badge running'>⟳ " + str(len(active)) + " session(s) running</span>" if active else ""}
+  </p>
+  <p style='color:#4a6080;font-size:0.85rem;margin-top:-0.8rem'>
+    24h cycles: <span style='color:#b0c4de'>{cycles_24h}</span>
+    &nbsp;·&nbsp;
+    24h cost: <span style='color:#4a9eff'>${cost_24h:.4f}</span>
+    &nbsp;·&nbsp;
+    open findings: <span style='color:{"#ff6b6b" if findings else "#51cf66"}'>{len(findings)}</span>
   </p>
 
   <h2>Coverage</h2>
