@@ -8,5 +8,5 @@ __pycache__/
 *.sqlite
 .DS_Store
 .langfuse/
-evals/results/*.json
+# evals/results tracked for submission
 reports/drafts/
