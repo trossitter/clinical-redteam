@@ -9,6 +9,12 @@ AgentForge continuously red-teams the [Clinical Co-Pilot](https://clinicalcopilo
 **Target system:** https://clinicalcopilot.org (demo mode, synthetic patients, no real PHI)  
 **Repository:** https://github.com/trossitter/clinical-redteam
 
+https://clinicalcopilot.org/agentforge
+https://x.com/TrossasaurusRex/status/2054283180702838963
+https://www.loom.com/share/cad7c2b7c86d4438a5d553ef24024529
+https://labs.gauntletai.com/thaliarossitter/clinical-redteam
+https://labs.gauntletai.com/thaliarossitter/openemr
+
 ---
 
 ## Architecture
